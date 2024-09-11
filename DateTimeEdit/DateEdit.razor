@@ -1,27 +1,33 @@
 ﻿@using System.Globalization
-@using System.Runtime.InteropServices.JavaScript
 @inject ILogger<DateEdit> Logger
 @inject IJSRuntime Js
 
 <div class="container @(Disabled == true ? "disabled" : "") @(Disabled == null ? "readonly" : "")">
     @if (EditMode != EditModes.TimeOnly)
     {
-        <input @ref="@(_elements[DatePart.Year])" type="number" class="year" min="1" max="9999" maxlength="4" value="@GetDatePart(DatePart.Year)" @oninput="HandleYearInput"
+        <input @ref="@(_elements[DatePart.Year])" type="number" class="year" min="1" max="9999" maxlength="4" value="@GetDatePart(DatePart.Year)"
+               @oninput="e => HandleInput(e,DatePart.Year)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">@DateSeparator</span>
-        <input @ref="@(_elements[DatePart.Month])" type="number" min="1" max="12" maxlength="2" value="@(GetDatePart(DatePart.Month)?.ToString("00"))" @oninput="HandleMonthInput"
+        <input @ref="@(_elements[DatePart.Month])" type="number" min="1" max="12" maxlength="2" value="@(GetDatePart(DatePart.Month)?.ToString("00"))"
+               @oninput="e => HandleInput(e,DatePart.Month)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">@DateSeparator</span>
-        <input @ref="@(_elements[DatePart.Day])" type="number" min="1" max="31" maxlength="2" value="@(GetDatePart(DatePart.Day)?.ToString("00"))" @oninput="HandleDayInput"
+        <input @ref="@(_elements[DatePart.Day])" type="number" min="1" max="31" maxlength="2" value="@(GetDatePart(DatePart.Day)?.ToString("00"))"
+               @oninput="e => HandleInput(e,DatePart.Day)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
     }
 
     @if (EditMode != EditModes.DateOnly)
     {
-        <input @ref="@(_elements[DatePart.Hour])" type="number" min="0" max="23" maxlength="2" class="hour" value="@(GetDatePart(DatePart.Hour)?.ToString("00"))" @oninput="HandleHourInput"
+        <input @ref="@(_elements[DatePart.Hour])" type="number" min="0" max="23" maxlength="2" class="hour"
+               value="@(GetDatePart(DatePart.Hour)?.ToString("00"))"
+               @oninput="e => HandleInput(e,DatePart.Hour)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">:</span>
-        <input @ref="@(_elements[DatePart.Minute])" type="number" min="0" max="59" maxlength="2" value="@(GetDatePart(DatePart.Minute)?.ToString("00"))" @oninput="HandleMinuteInput"
+        <input @ref="@(_elements[DatePart.Minute])" type="number" min="0" max="59" maxlength="2"
+               value="@(GetDatePart(DatePart.Minute)?.ToString("00"))"
+               @oninput="e => HandleInput(e,DatePart.Minute)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
     }
 </div>
@@ -135,98 +141,50 @@
         }
 
     }
-    private async Task HandleYearInput(ChangeEventArgs e)
+    private async Task HandleInput(ChangeEventArgs e, DatePart part)
     {
-        if (int.TryParse(e.Value?.ToString(), out var parsedYear) && parsedYear > 0)
+        var rawValue = e.Value?.ToString();
+        if (int.TryParse(rawValue, out var parsedValue))
         {
-            _dateParts[DatePart.Year] = parsedYear;
-
-            if (parsedYear.ToString().Length == 4)
+            _dateParts[part] = parsedValue;
+            var shouldMoveFocus = part switch
             {
-                await Focus(DatePart.Month);
+                DatePart.Year => parsedValue.ToString().Length == 4,
+                DatePart.Month => parsedValue > 1 || rawValue.Length == 2,
+                DatePart.Day => parsedValue > 3 || rawValue.Length == 2,
+                DatePart.Hour => parsedValue > 2 || rawValue.Length == 2,
+                _ => false
+            };
+
+            if (shouldMoveFocus)
+            {
+                switch (part)
+                {
+                    case DatePart.Year:
+                    case DatePart.Month:
+                    case DatePart.Day:
+                        var day = GetDatePart(DatePart.Day);
+                        if (day.HasValue) _dateParts[DatePart.Day] = CoerceDay(day.Value);
+                        break;
+                }
+                var nextPart = (DatePart)((int)part + 1);
+                var max = EditMode == EditModes.DateOnly ? DatePart.Day : DatePart.Minute;
+                if (nextPart <= max) await Focus(nextPart);
             }
         }
         else
         {
-            _dateParts.Remove(DatePart.Year);
+            _dateParts.Remove(part);
         }
 
         UpdateValue();
     }
 
-    private async Task HandleMonthInput(ChangeEventArgs e)
-    {
-        if (int.TryParse(e.Value?.ToString(), out var month) && month > 0)
-        {
-            _dateParts[DatePart.Month] = month;
-
-            if (month > 1 || month.ToString().Length == 2)
-            {
-                if (_dateParts.TryGetValue(DatePart.Day, out var day)) _dateParts[DatePart.Day] = CoerceDay(day);
-                await Focus(DatePart.Day);
-            }
-        }
-        else
-        {
-            _dateParts.Remove(DatePart.Month);
-        }
-
-        UpdateValue();
-    }
-
-    private async Task HandleDayInput(ChangeEventArgs e)
-    {
-        if (int.TryParse(e.Value?.ToString(), out var day) && day > 0)
-        {
-            _dateParts[DatePart.Day] = CoerceDay(day);
-            if (day > 3 || day.ToString().Length == 2)
-            {
-                await Focus(DatePart.Hour);
-            }
-        }
-        else
-        {
-            _dateParts.Remove(DatePart.Day);
-        }
-
-        UpdateValue();
-    }
 
     private async Task Focus(DatePart part)
     {
         if (_elements.TryGetValue(part, out var element))
             await element.FocusAsync();
-    }
-
-    private async Task HandleHourInput(ChangeEventArgs e)
-    {
-        if (int.TryParse(e.Value?.ToString(), out var hour))
-        {
-            _dateParts[DatePart.Hour] = hour;
-            if (hour > 2 || hour.ToString().Length == 2)
-            {
-                await Focus(DatePart.Minute);
-            }
-        }
-        else
-        {
-            _dateParts.Remove(DatePart.Hour);
-        }
-
-        UpdateValue();
-    }
-
-    private void HandleMinuteInput(ChangeEventArgs e)
-    {
-        if (int.TryParse(e.Value?.ToString(), out var parsedMinute))
-        {
-            _dateParts[DatePart.Minute] = parsedMinute;
-        }
-        else
-        {
-            _dateParts.Remove(DatePart.Minute);
-        }
-        UpdateValue();
     }
 
     private int CoerceDay(int day)
