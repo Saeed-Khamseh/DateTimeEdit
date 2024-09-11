@@ -6,15 +6,15 @@
     @if (EditMode != EditModes.TimeOnly)
     {
         <input @ref="@(_elements[DatePart.Year])" type="number" class="year" min="1" max="9999" maxlength="4" value="@GetDatePart(DatePart.Year)"
-               @oninput="e => HandleInput(e,DatePart.Year)"
+               @oninput="e => HandleInput(e,DatePart.Year)" @onfocus="e => HandleFocus(DatePart.Year)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">@DateSeparator</span>
         <input @ref="@(_elements[DatePart.Month])" type="number" min="1" max="12" maxlength="2" value="@(GetDatePart(DatePart.Month)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Month)"
+               @oninput="e => HandleInput(e,DatePart.Month)" @onfocus="e => HandleFocus(DatePart.Month)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">@DateSeparator</span>
         <input @ref="@(_elements[DatePart.Day])" type="number" min="1" max="31" maxlength="2" value="@(GetDatePart(DatePart.Day)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Day)"
+               @oninput="e => HandleInput(e,DatePart.Day)" @onfocus="e => HandleFocus(DatePart.Day)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
     }
 
@@ -22,12 +22,12 @@
     {
         <input @ref="@(_elements[DatePart.Hour])" type="number" min="0" max="23" maxlength="2" class="hour"
                value="@(GetDatePart(DatePart.Hour)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Hour)"
+               @oninput="e => HandleInput(e,DatePart.Hour)" @onfocus="e => HandleFocus(DatePart.Hour)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">:</span>
         <input @ref="@(_elements[DatePart.Minute])" type="number" min="0" max="59" maxlength="2"
                value="@(GetDatePart(DatePart.Minute)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Minute)"
+               @oninput="e => HandleInput(e,DatePart.Minute)" @onfocus="e => HandleFocus(DatePart.Minute)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
     }
 </div>
@@ -122,9 +122,7 @@
 
     private bool IsValidDate(int? year, int? month, int? day)
     {
-        if (!year.HasValue || !month.HasValue || !day.HasValue)
-            return false;
-        return TryCreateDate(year.Value, month.Value, day.Value).HasValue;
+        return year.HasValue && month.HasValue && day.HasValue && TryCreateDate(year.Value, month.Value, day.Value).HasValue;
     }
 
     private DateTime? TryCreateDate(int year, int month, int day, int hour = 0, int minute = 0)
@@ -147,24 +145,24 @@
         if (int.TryParse(rawValue, out var parsedValue))
         {
             _dateParts[part] = parsedValue;
-            var shouldMoveFocus = part switch
+            var editComplete = part switch
             {
                 DatePart.Year => parsedValue.ToString().Length == 4,
                 DatePart.Month => parsedValue > 1 || rawValue.Length == 2,
                 DatePart.Day => parsedValue > 3 || rawValue.Length == 2,
-                DatePart.Hour => parsedValue > 2 || rawValue.Length == 2,
-                _ => false
+                _ => rawValue.Length >= 2,
             };
 
-            if (shouldMoveFocus)
+            if (editComplete)
             {
+                _dateParts[part] = CoerceValue(parsedValue, part);
                 switch (part)
                 {
                     case DatePart.Year:
                     case DatePart.Month:
                     case DatePart.Day:
                         var day = GetDatePart(DatePart.Day);
-                        if (day.HasValue) _dateParts[DatePart.Day] = CoerceDay(day.Value);
+                        if (day.HasValue) _dateParts[DatePart.Day] = CoerceValue(day.Value, DatePart.Day);
                         break;
                 }
                 var nextPart = (DatePart)((int)part + 1);
@@ -187,12 +185,44 @@
             await element.FocusAsync();
     }
 
-    private int CoerceDay(int day)
+    private int CoerceValue(int value, DatePart part)
     {
-        if (!_dateParts.TryGetValue(DatePart.Year, out var year) ||
-            !_dateParts.TryGetValue(DatePart.Month, out var month)) return day;
-        var maxDays = Calendar.GetDaysInMonth(year, month);
-        return day > maxDays ? maxDays : day;
+        var min = 0;
+        var max = 0;
+        switch (part)
+        {
+            case DatePart.Year:
+                min = Calendar.GetYear(Calendar.MinSupportedDateTime);
+                max = Calendar.GetYear(Calendar.MaxSupportedDateTime);
+                break;
+            case DatePart.Month:
+                min = 1;
+                max = 12;
+                break;
+            case DatePart.Day:
+                min = 1;
+                max = _dateParts.TryGetValue(DatePart.Year, out var year) && _dateParts.TryGetValue(DatePart.Month, out var month)
+                    ? Calendar.GetDaysInMonth(year, month)
+                    : 31;
+                break;
+            case DatePart.Hour:
+                min = 0;
+                max = 23;
+                break;
+            case DatePart.Minute:
+                min = 0;
+                max = 59;
+                break;
+        }
+        return value > max ? max : value < min ? min : value;
+    }
+
+    private async Task HandleFocus(DatePart part)
+    {
+        if (_elements.TryGetValue(part, out var element))
+        {
+            await Js.InvokeVoidAsync("HTMLInputElement.prototype.select.call", element);
+        }
     }
 
 }
