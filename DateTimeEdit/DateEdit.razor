@@ -5,23 +5,23 @@
 <div class="container @(Disabled == true ? "disabled" : "") @(Disabled == null ? "readonly" : "")">
     @if (EditMode != EditModes.TimeOnly)
     {
-        <input @ref="_yearInput" type="number" class="year" min="1" max="9999" maxlength="4" value="@Year" @oninput="HandleYearInput"
-               disabled="@(Disabled == true)" readonly="@(Disabled == null)"/>
+        <input @ref="@(_elements[DatePart.Year])" type="number" class="year" min="1" max="9999" maxlength="4" value="@Year" @oninput="HandleYearInput"
+               disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">@DateSeparator</span>
-        <input @ref="_monthInput" type="number" min="1" max="12" maxlength="2" value="@(Month?.ToString("00"))" @oninput="HandleMonthInput"
-               disabled="@(Disabled == true)" readonly="@(Disabled == null)"/>
+        <input @ref="@(_elements[DatePart.Month])" type="number" min="1" max="12" maxlength="2" value="@(Month?.ToString("00"))" @oninput="HandleMonthInput"
+               disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">@DateSeparator</span>
-        <input @ref="_dayInput" type="number" min="1" max="31" maxlength="2" value="@(Day?.ToString("00"))" @oninput="HandleDayInput"
-               disabled="@(Disabled == true)" readonly="@(Disabled == null)"/>
+        <input @ref="@(_elements[DatePart.Day])" type="number" min="1" max="31" maxlength="2" value="@(Day?.ToString("00"))" @oninput="HandleDayInput"
+               disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
     }
 
     @if (EditMode != EditModes.DateOnly)
     {
-        <input @ref="_hourInput" type="number" min="0" max="23" maxlength="2" class="hour" value="@(Hour?.ToString("00"))" @oninput="HandleHourInput"
-               disabled="@(Disabled == true)" readonly="@(Disabled == null)"/>
+        <input @ref="@(_elements[DatePart.Hour])" type="number" min="0" max="23" maxlength="2" class="hour" value="@(Hour?.ToString("00"))" @oninput="HandleHourInput"
+               disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">:</span>
-        <input @ref="_minuteInput" type="number" min="0" max="23" maxlength="2" value="@(Minute?.ToString("00"))" @oninput="HandleMinuteInput"
-               disabled="@(Disabled == true)" readonly="@(Disabled == null)"/>
+        <input @ref="@(_elements[DatePart.Minute])" type="number" min="0" max="59" maxlength="2" value="@(Minute?.ToString("00"))" @oninput="HandleMinuteInput"
+               disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
     }
 </div>
 
@@ -34,6 +34,15 @@
         TimeOnly
     }
 
+    public enum DatePart
+    {
+        Year,
+        Month,
+        Day,
+        Hour,
+        Minute
+    }
+
     [Parameter] public bool? Disabled { get; set; } = false;
     [Parameter] public char DateSeparator { get; set; } = '/';
     [Parameter] public EditModes EditMode { get; set; } = EditModes.Datetime;
@@ -41,6 +50,7 @@
 
     private DateTime? _value;
     private DateTime? _lastValidDate;
+    private Dictionary<DatePart, ElementReference> _elements = new();
 
     [Parameter]
     public DateTime? Value
@@ -63,13 +73,6 @@
     private int? Year { get; set; }
     private int? Hour { get; set; }
     private int? Minute { get; set; }
-
-    private ElementReference _yearInput;
-    private ElementReference _monthInput;
-    private ElementReference _dayInput;
-    private ElementReference _hourInput;
-    private ElementReference _minuteInput;
-
 
     private void UpdateDateParts()
     {
@@ -126,13 +129,13 @@
 
     private async Task HandleYearInput(ChangeEventArgs e)
     {
-        if (int.TryParse(e.Value?.ToString(), out var parsedYear))
+        if (int.TryParse(e.Value?.ToString(), out var parsedYear) && parsedYear > 0)
         {
             Year = parsedYear;
 
             if (Year.ToString()?.Length == 4)
             {
-                await _monthInput.FocusAsync(); // Move to month field when year has 4 digits
+                await _elements[DatePart.Month].FocusAsync(); // Move to month field when year has 4 digits
             }
         }
         else
@@ -145,14 +148,14 @@
 
     private async Task HandleMonthInput(ChangeEventArgs e)
     {
-        if (int.TryParse(e.Value?.ToString(), out var parsedMonth))
+        if (int.TryParse(e.Value?.ToString(), out var parsedMonth) && parsedMonth > 0)
         {
             Month = parsedMonth;
 
             if (Month > 1 || Month.ToString()?.Length == 2)
             {
                 CoerceDay();
-                await _dayInput.FocusAsync();
+                await _elements[DatePart.Day].FocusAsync();
             }
         }
         else
@@ -165,7 +168,7 @@
 
     private async Task HandleDayInput(ChangeEventArgs e)
     {
-        if (int.TryParse(e.Value?.ToString(), out var parsedDay))
+        if (int.TryParse(e.Value?.ToString(), out var parsedDay) && parsedDay > 0)
         {
             Day = parsedDay;
             if (Year.HasValue && Month.HasValue)
@@ -179,7 +182,7 @@
 
             if (Day > 3 || Day.ToString()?.Length == 2)
             {
-                await _hourInput.FocusAsync();
+                await _elements[DatePart.Hour].FocusAsync();
             }
         }
         else
@@ -198,7 +201,7 @@
 
             if (Hour > 2 || Hour.ToString()?.Length == 2)
             {
-                await _minuteInput.FocusAsync();
+                await _elements[DatePart.Minute].FocusAsync();
             }
         }
         else
