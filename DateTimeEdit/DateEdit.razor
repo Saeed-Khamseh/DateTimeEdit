@@ -6,15 +6,15 @@
     @if (EditMode != EditModes.TimeOnly)
     {
         <input @ref="@(_elements[DatePart.Year])" type="number" class="year" min="1" max="9999" maxlength="4" value="@GetDatePart(DatePart.Year)"
-               @oninput="e => HandleInput(e,DatePart.Year)" @onfocus="e => HandleFocus(DatePart.Year)"
+               @oninput="e => HandleInput(e,DatePart.Year)" @onfocus="() => HandleFocus(DatePart.Year)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">@DateSeparator</span>
         <input @ref="@(_elements[DatePart.Month])" type="number" min="1" max="12" maxlength="2" value="@(GetDatePart(DatePart.Month)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Month)" @onfocus="e => HandleFocus(DatePart.Month)"
+               @oninput="e => HandleInput(e,DatePart.Month)" @onfocus="() => HandleFocus(DatePart.Month)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">@DateSeparator</span>
         <input @ref="@(_elements[DatePart.Day])" type="number" min="1" max="31" maxlength="2" value="@(GetDatePart(DatePart.Day)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Day)" @onfocus="e => HandleFocus(DatePart.Day)"
+               @oninput="e => HandleInput(e,DatePart.Day)" @onfocus="() => HandleFocus(DatePart.Day)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
     }
 
@@ -22,12 +22,12 @@
     {
         <input @ref="@(_elements[DatePart.Hour])" type="number" min="0" max="23" maxlength="2" class="hour"
                value="@(GetDatePart(DatePart.Hour)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Hour)" @onfocus="e => HandleFocus(DatePart.Hour)"
+               @oninput="e => HandleInput(e,DatePart.Hour)" @onfocus="() => HandleFocus(DatePart.Hour)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">:</span>
         <input @ref="@(_elements[DatePart.Minute])" type="number" min="0" max="59" maxlength="2"
                value="@(GetDatePart(DatePart.Minute)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Minute)" @onfocus="e => HandleFocus(DatePart.Minute)"
+               @oninput="e => HandleInput(e,DatePart.Minute)" @onfocus="() => HandleFocus(DatePart.Minute)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
     }
 </div>
