@@ -1,0 +1,29 @@
+﻿@page "/"
+@using System.Globalization
+
+<PageTitle>Home</PageTitle>
+
+<p>
+    Date and time persian: <DateEdit @bind-Value="_currentDate" />
+</p>
+<p>
+    Date and time gregorian: <DateEdit @bind-Value="_currentDate" Calendar="_gregorianCalendar" />
+</p>
+<p>
+    Date only:<DateEdit @bind-Value="_currentDate" EditMode="@DateEdit.EditModes.DateOnly" />
+</p>
+<p>
+    Time only: <DateEdit @bind-Value="_currentDate" EditMode="@DateEdit.EditModes.TimeOnly" />
+</p>
+<p>
+    disabled style: <DateEdit @bind-Value="_currentDate" Disabled="true" />
+</p>
+<p>
+    readonly style: <DateEdit @bind-Value="_currentDate" Disabled="null" />
+</p>
+<p>You selected: @_currentDate?.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture)</p>
+
+@code {
+    private DateTime? _currentDate;
+    private readonly Calendar _gregorianCalendar = new GregorianCalendar();
+}
