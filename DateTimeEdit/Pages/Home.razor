@@ -21,7 +21,7 @@
 <p>
     readonly style: <DateEdit @bind-Value="_currentDate" Disabled="null" />
 </p>
-<p>You selected: @_currentDate?.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture)</p>
+<p>You selected: @_currentDate?.ToString("yyyy/MM/dd HH:mm")</p>
 
 @code {
     private DateTime? _currentDate;
