@@ -4,22 +4,22 @@
 <PageTitle>Home</PageTitle>
 
 <p>
-    Date and time persian: <DateEdit @bind-Value="_currentDate" />
+    Date and time persian: <DateTimeEdit @bind-Value="_currentDate" />
 </p>
 <p>
-    Date and time gregorian: <DateEdit @bind-Value="_currentDate" Calendar="_gregorianCalendar" />
+    Date and time gregorian: <DateTimeEdit @bind-Value="_currentDate" Calendar="_gregorianCalendar" />
 </p>
 <p>
-    Date only:<DateEdit @bind-Value="_currentDate" EditMode="@DateEdit.EditModes.DateOnly" />
+    Date only:<DateTimeEdit @bind-Value="_currentDate" Mode="@DateTimeEdit.EditMode.DateOnly" />
 </p>
 <p>
-    Time only: <DateEdit @bind-Value="_currentDate" EditMode="@DateEdit.EditModes.TimeOnly" />
+    Time only: <DateTimeEdit @bind-Value="_currentDate" Mode="@DateTimeEdit.EditMode.TimeOnly" />
 </p>
 <p>
-    disabled style: <DateEdit @bind-Value="_currentDate" Disabled="true" />
+    disabled style: <DateTimeEdit @bind-Value="_currentDate" Disabled="true" />
 </p>
 <p>
-    readonly style: <DateEdit @bind-Value="_currentDate" Disabled="null" />
+    readonly style: <DateTimeEdit @bind-Value="_currentDate" Disabled="null" />
 </p>
 <p>You selected: @_currentDate?.ToString("yyyy/MM/dd HH:mm")</p>
 

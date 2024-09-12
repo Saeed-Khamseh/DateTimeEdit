@@ -1,9 +1,9 @@
 ﻿@using System.Globalization
-@inject ILogger<DateEdit> Logger
+@inject ILogger<DateTimeEdit> Logger
 @inject IJSRuntime Js
 
 <div class="container @(Disabled == true ? "disabled" : "") @(Disabled == null ? "readonly" : "")">
-    @if (EditMode != EditModes.TimeOnly)
+    @if (Mode != EditMode.TimeOnly)
     {
         <input @ref="@(_elements[DatePart.Year])" type="number" class="year" min="1" max="9999" maxlength="4" value="@GetDatePart(DatePart.Year)"
                @oninput="e => HandleInput(e,DatePart.Year)" @onfocus="() => HandleFocus(DatePart.Year)" @onkeyup="e => HandleKeyUp(e, DatePart.Year)"
@@ -18,7 +18,7 @@
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
     }
 
-    @if (EditMode != EditModes.DateOnly)
+    @if (Mode != EditMode.DateOnly)
     {
         <input @ref="@(_elements[DatePart.Hour])" type="number" min="0" max="23" maxlength="2" class="hour"
                value="@(GetDatePart(DatePart.Hour)?.ToString("00"))"
@@ -34,7 +34,7 @@
 
 @code {
 
-    public enum EditModes
+    public enum EditMode
     {
         Datetime,
         DateOnly,
@@ -52,7 +52,7 @@
 
     [Parameter] public bool? Disabled { get; set; } = false;
     [Parameter] public char DateSeparator { get; set; } = '/';
-    [Parameter] public EditModes EditMode { get; set; } = EditModes.Datetime;
+    [Parameter] public EditMode Mode { get; set; } = EditMode.Datetime;
     [Parameter] public Calendar Calendar { get; set; } = new PersianCalendar();
 
     private DateTime? _value;
@@ -227,7 +227,6 @@
 
     private async Task HandleKeyUp(KeyboardEventArgs e, DatePart part)
     {
-        if (!_elements.TryGetValue(part, out var element)) return;
         switch (e.Code)
         {
             case "Backspace" when GetDatePart(part) == null:
