@@ -54,9 +54,10 @@
     [Parameter] public char DateSeparator { get; set; } = '/';
     [Parameter] public EditMode Mode { get; set; } = EditMode.Datetime;
     [Parameter] public Calendar Calendar { get; set; } = new PersianCalendar();
+    [Parameter] public DateTime MinDate { get; set; } = new PersianCalendar().ToDateTime(1300, 1, 1, 0, 0, 0, 0);
+    [Parameter] public DateTime MaxDate { get; set; } = DateTime.MaxValue; // Default to the largest date possible
 
     private DateTime? _value;
-    private DateTime? _lastValidDate;
     private Dictionary<DatePart, ElementReference> _elements = new();
 
     private readonly Dictionary<DatePart, int> _dateParts = new();
@@ -67,26 +68,25 @@
         get => _value;
         set
         {
-            if (_value == value) return;
+            UpdateDateParts(value);
+            if (value == null && _value == null || (_value?.Equals(value) ?? false)) return;
             _value = value;
-            UpdateDateParts();
             ValueChanged.InvokeAsync(value);
         }
     }
 
     [Parameter] public EventCallback<DateTime?> ValueChanged { get; set; }
 
-    private void UpdateDateParts()
+    private void UpdateDateParts(DateTime? dateTime)
     {
-        if (_value.HasValue)
+        if (dateTime.HasValue)
         {
-            var value = _value.Value;
+            var value = dateTime.Value;
             _dateParts[DatePart.Year] = Calendar.GetYear(value);
             _dateParts[DatePart.Month] = Calendar.GetMonth(value);
             _dateParts[DatePart.Day] = Calendar.GetDayOfMonth(value);
             _dateParts[DatePart.Hour] = value.Hour;
             _dateParts[DatePart.Minute] = value.Minute;
-            _lastValidDate = value;
         }
         else
         {
@@ -109,9 +109,9 @@
                 GetDatePart(DatePart.Hour) ?? _value?.Hour ?? 0, GetDatePart(DatePart.Minute) ?? _value?.Minute ?? 0);
             if (updatedDate.HasValue)
             {
-                _value = updatedDate;
-                _lastValidDate = _value;
-                ValueChanged.InvokeAsync(_value);
+                // Apply min/max restrictions before setting the value
+                updatedDate = ApplyMinMaxRestrictions(updatedDate.Value);
+                Value = updatedDate;
             }
         }
         else
@@ -119,7 +119,20 @@
             Logger.LogWarning("Incomplete date entry, waiting for valid input.");
         }
     }
+    private DateTime ApplyMinMaxRestrictions(DateTime value)
+    {
+        if (value < MinDate)
+        {
+            return MinDate;
+        }
 
+        if (value > MaxDate)
+        {
+            return MaxDate;
+        }
+
+        return value;
+    }
     private bool IsValidDate(int? year, int? month, int? day)
     {
         return year.HasValue && month.HasValue && day.HasValue && TryCreateDate(year.Value, month.Value, day.Value).HasValue;
@@ -227,13 +240,15 @@
 
     private async Task HandleKeyUp(KeyboardEventArgs e, DatePart part)
     {
+        if (!_elements.TryGetValue(part, out var element)) return;
+        var value = await Js.InvokeAsync<string>("Reflect.get", element, "value");
         switch (e.Code)
         {
-            case "Backspace" when GetDatePart(part) == null:
+            case "Backspace" when value.Length == 0:
                 await MoveFocus(part, false);
                 break;
             case "Enter":
-                await MoveFocus(part);
+                await MoveFocus(part, !e.ShiftKey);
                 break;
         }
     }

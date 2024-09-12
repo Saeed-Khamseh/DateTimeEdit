@@ -24,6 +24,6 @@
 <p>You selected: @_currentDate?.ToString("yyyy/MM/dd HH:mm")</p>
 
 @code {
-    private DateTime? _currentDate;
+    private DateTime? _currentDate = DateTime.Now.AddYears(-150);
     private readonly Calendar _gregorianCalendar = new GregorianCalendar();
 }
