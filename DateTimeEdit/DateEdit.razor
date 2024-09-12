@@ -6,15 +6,15 @@
     @if (EditMode != EditModes.TimeOnly)
     {
         <input @ref="@(_elements[DatePart.Year])" type="number" class="year" min="1" max="9999" maxlength="4" value="@GetDatePart(DatePart.Year)"
-               @oninput="e => HandleInput(e,DatePart.Year)" @onfocus="() => HandleFocus(DatePart.Year)"
+               @oninput="e => HandleInput(e,DatePart.Year)" @onfocus="() => HandleFocus(DatePart.Year)" @onkeyup="e => HandleKeyUp(e, DatePart.Year)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">@DateSeparator</span>
         <input @ref="@(_elements[DatePart.Month])" type="number" min="1" max="12" maxlength="2" value="@(GetDatePart(DatePart.Month)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Month)" @onfocus="() => HandleFocus(DatePart.Month)"
+               @oninput="e => HandleInput(e,DatePart.Month)" @onfocus="() => HandleFocus(DatePart.Month)" @onkeyup="e => HandleKeyUp(e, DatePart.Month)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">@DateSeparator</span>
         <input @ref="@(_elements[DatePart.Day])" type="number" min="1" max="31" maxlength="2" value="@(GetDatePart(DatePart.Day)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Day)" @onfocus="() => HandleFocus(DatePart.Day)"
+               @oninput="e => HandleInput(e,DatePart.Day)" @onfocus="() => HandleFocus(DatePart.Day)" @onkeyup="e => HandleKeyUp(e, DatePart.Day)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
     }
 
@@ -22,12 +22,12 @@
     {
         <input @ref="@(_elements[DatePart.Hour])" type="number" min="0" max="23" maxlength="2" class="hour"
                value="@(GetDatePart(DatePart.Hour)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Hour)" @onfocus="() => HandleFocus(DatePart.Hour)"
+               @oninput="e => HandleInput(e,DatePart.Hour)" @onfocus="() => HandleFocus(DatePart.Hour)" @onkeyup="e => HandleKeyUp(e, DatePart.Hour)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">:</span>
         <input @ref="@(_elements[DatePart.Minute])" type="number" min="0" max="59" maxlength="2"
                value="@(GetDatePart(DatePart.Minute)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Minute)" @onfocus="() => HandleFocus(DatePart.Minute)"
+               @oninput="e => HandleInput(e,DatePart.Minute)" @onfocus="() => HandleFocus(DatePart.Minute)" @onkeyup="e => HandleKeyUp(e, DatePart.Minute)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
     }
 </div>
@@ -165,9 +165,7 @@
                         if (day.HasValue) _dateParts[DatePart.Day] = CoerceValue(day.Value, DatePart.Day);
                         break;
                 }
-                var nextPart = (DatePart)((int)part + 1);
-                var max = EditMode == EditModes.DateOnly ? DatePart.Day : DatePart.Minute;
-                if (nextPart <= max) await Focus(nextPart);
+                await MoveFocus(part);
             }
         }
         else
@@ -179,9 +177,11 @@
     }
 
 
-    private async Task Focus(DatePart part)
+    private async Task MoveFocus(DatePart part, bool forward = true)
     {
-        if (_elements.TryGetValue(part, out var element))
+        var targetPart = part + (forward ? 1 : -1);
+        if (targetPart is < DatePart.Year or > DatePart.Minute) return;
+        if (_elements.TryGetValue(targetPart, out var element))
             await element.FocusAsync();
     }
 
@@ -222,6 +222,20 @@
         if (_elements.TryGetValue(part, out var element))
         {
             await Js.InvokeVoidAsync("HTMLInputElement.prototype.select.call", element);
+        }
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e, DatePart part)
+    {
+        if (!_elements.TryGetValue(part, out var element)) return;
+        switch (e.Code)
+        {
+            case "Backspace" when GetDatePart(part) == null:
+                await MoveFocus(part, false);
+                break;
+            case "Enter":
+                await MoveFocus(part);
+                break;
         }
     }
 
