@@ -1,29 +1,66 @@
 ﻿@page "/"
 @using System.Globalization
 
-<PageTitle>Home</PageTitle>
+<h3>DateTimeEdit Demo</h3>
 
-<p>
-    Date and time persian: <DateTimeEdit @bind-Value="_currentDate" />
-</p>
-<p>
-    Date and time gregorian: <DateTimeEdit @bind-Value="_currentDate" Calendar="_gregorianCalendar" />
-</p>
-<p>
-    Date only:<DateTimeEdit @bind-Value="_currentDate" Mode="@DateTimeEdit.EditMode.DateOnly" />
-</p>
-<p>
-    Time only: <DateTimeEdit @bind-Value="_currentDate" Mode="@DateTimeEdit.EditMode.TimeOnly" />
-</p>
-<p>
-    disabled style: <DateTimeEdit @bind-Value="_currentDate" Disabled="true" />
-</p>
-<p>
-    readonly style: <DateTimeEdit @bind-Value="_currentDate" Disabled="null" />
-</p>
-<p>You selected: @_currentDate?.ToString("yyyy/MM/dd HH:mm")</p>
+<div class="controls">
+    <label>Mode:</label>
+    <select @bind="SelectedMode">
+        <option value="DateAndTime">Date & Time (Default)</option>
+        <option value="DateOnly">Date Only</option>
+        <option value="TimeOnly">Time Only</option>
+    </select>
 
+    <label>Calendar:</label>
+    <select @bind="SelectedCalendar">
+        <option value="Persian">Persian (Default)</option>
+        <option value="Gregorian">Gregorian</option>
+    </select>
+
+    <label>Date Separator:</label>
+    <input type="text" maxlength="1" @bind="DateSeparator" />
+
+    <label>State:</label>
+    <select @bind="SelectedState">
+        <option value="normal">Normal (Default)</option>
+        <option value="readonly">Readonly</option>
+        <option value="disabled">Disabled</option>
+    </select>
+
+    <label>Min Date:</label>
+    <DateTimeEdit @bind-Value="MinDate" Mode="DateTimeEdit.EditMode.DateOnly" />
+
+    <label>Max Date:</label>
+    <DateTimeEdit @bind-Value="MaxDate" Mode="DateTimeEdit.EditMode.DateOnly" />
+</div>
+
+<hr />
+
+<DateTimeEdit Mode="@SelectedMode" @bind-Value="Value"
+              DateSeparator="@DateSeparator"
+              Calendar="@SelectedCalendarInstance"
+              Disabled="@Disabled"
+              MinDate="@MinDate"
+              MaxDate="@MaxDate" />
+<p>You selected: @Value?.ToString("yyyy/MM/dd HH:mm")</p>
 @code {
-    private DateTime? _currentDate = DateTime.Now.AddYears(-150);
-    private readonly Calendar _gregorianCalendar = new GregorianCalendar();
+    public DateTime? MinDate { get; set; }
+    public DateTime? MaxDate { get; set; }
+    public DateTime? Value { get; set; }
+
+    public DateTimeEdit.EditMode SelectedMode { get; set; } = DateTimeEdit.EditMode.DateAndTime;
+    public string SelectedCalendar { get; set; } = "Persian";
+    public char DateSeparator { get; set; } = '/';
+    public string SelectedState { get; set; } = "normal";
+
+    public bool? Disabled => SelectedState switch
+    {
+        "readonly" => null,
+        "disabled" => true,
+        _ => false
+    };
+
+    public Calendar SelectedCalendarInstance => SelectedCalendar == "Persian"
+        ? new PersianCalendar()
+        : new GregorianCalendar();
 }

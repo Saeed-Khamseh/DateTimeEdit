@@ -36,7 +36,7 @@
 
     public enum EditMode
     {
-        Datetime,
+        DateAndTime,
         DateOnly,
         TimeOnly
     }
@@ -52,10 +52,10 @@
 
     [Parameter] public bool? Disabled { get; set; } = false;
     [Parameter] public char DateSeparator { get; set; } = '/';
-    [Parameter] public EditMode Mode { get; set; } = EditMode.Datetime;
+    [Parameter] public EditMode Mode { get; set; } = EditMode.DateAndTime;
     [Parameter] public Calendar Calendar { get; set; } = new PersianCalendar();
-    [Parameter] public DateTime MinDate { get; set; } = new PersianCalendar().ToDateTime(1300, 1, 1, 0, 0, 0, 0);
-    [Parameter] public DateTime MaxDate { get; set; } = DateTime.MaxValue; // Default to the largest date possible
+    [Parameter] public DateTime? MinDate { get; set; }
+    [Parameter] public DateTime? MaxDate { get; set; }
 
     private DateTime? _value;
     private Dictionary<DatePart, ElementReference> _elements = new();
@@ -121,18 +121,11 @@
     }
     private DateTime ApplyMinMaxRestrictions(DateTime value)
     {
-        if (value < MinDate)
-        {
-            return MinDate;
-        }
-
-        if (value > MaxDate)
-        {
-            return MaxDate;
-        }
-
-        return value;
+        var minDate = MinDate ?? Calendar.MinSupportedDateTime;
+        var maxDate = MaxDate ?? Calendar.MaxSupportedDateTime;
+        return value < minDate ? minDate : value > maxDate ? maxDate : value;
     }
+
     private bool IsValidDate(int? year, int? month, int? day)
     {
         return year.HasValue && month.HasValue && day.HasValue && TryCreateDate(year.Value, month.Value, day.Value).HasValue;
@@ -193,7 +186,8 @@
     private async Task MoveFocus(DatePart part, bool forward = true)
     {
         var targetPart = part + (forward ? 1 : -1);
-        if (targetPart is < DatePart.Year or > DatePart.Minute) return;
+        if (targetPart < (Mode == EditMode.TimeOnly ? DatePart.Hour : DatePart.Year) ||
+            targetPart > (Mode == EditMode.DateOnly ? DatePart.Day : DatePart.Minute)) return;
         if (_elements.TryGetValue(targetPart, out var element))
             await element.FocusAsync();
     }
