@@ -5,29 +5,29 @@
 <div class="container @(Disabled == true ? "disabled" : "") @(Disabled == null ? "readonly" : "")">
     @if (Mode != EditMode.TimeOnly)
     {
-        <input @ref="@(_elements[DatePart.Year])" type="number" class="year" min="1" max="9999" maxlength="4" value="@GetDatePart(DatePart.Year)"
-               @oninput="e => HandleInput(e,DatePart.Year)" @onfocus="() => HandleFocus(DatePart.Year)" @onkeyup="e => HandleKeyUp(e, DatePart.Year)"
+        <input @ref="@(_elements[DatePart.Year])" type="number" class="year" min="1" max="9999" maxlength="4" value="@GetInputValue(DatePart.Year)"
+               @oninput="e => HandleInput(e, DatePart.Year)" @onfocus="() => HandleFocus(DatePart.Year)" @onkeyup="e => HandleKeyUp(e, DatePart.Year)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">@DateSeparator</span>
-        <input @ref="@(_elements[DatePart.Month])" type="number" min="1" max="12" maxlength="2" value="@(GetDatePart(DatePart.Month)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Month)" @onfocus="() => HandleFocus(DatePart.Month)" @onkeyup="e => HandleKeyUp(e, DatePart.Month)"
+        <input @ref="@(_elements[DatePart.Month])" type="number" min="1" max="12" maxlength="2" value="@(GetInputValue(DatePart.Month)?.ToString("00"))"
+               @oninput="e => HandleInput(e, DatePart.Month)" @onfocus="() => HandleFocus(DatePart.Month)" @onkeyup="e => HandleKeyUp(e, DatePart.Month)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">@DateSeparator</span>
-        <input @ref="@(_elements[DatePart.Day])" type="number" min="1" max="31" maxlength="2" value="@(GetDatePart(DatePart.Day)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Day)" @onfocus="() => HandleFocus(DatePart.Day)" @onkeyup="e => HandleKeyUp(e, DatePart.Day)"
+        <input @ref="@(_elements[DatePart.Day])" type="number" min="1" max="31" maxlength="2" value="@(GetInputValue(DatePart.Day)?.ToString("00"))"
+               @oninput="e => HandleInput(e, DatePart.Day)" @onfocus="() => HandleFocus(DatePart.Day)" @onkeyup="e => HandleKeyUp(e, DatePart.Day)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
     }
 
     @if (Mode != EditMode.DateOnly)
     {
         <input @ref="@(_elements[DatePart.Hour])" type="number" min="0" max="23" maxlength="2" class="hour"
-               value="@(GetDatePart(DatePart.Hour)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Hour)" @onfocus="() => HandleFocus(DatePart.Hour)" @onkeyup="e => HandleKeyUp(e, DatePart.Hour)"
+               value="@(GetInputValue(DatePart.Hour)?.ToString("00"))"
+               @oninput="e => HandleInput(e, DatePart.Hour)" @onfocus="() => HandleFocus(DatePart.Hour)" @onkeyup="e => HandleKeyUp(e, DatePart.Hour)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">:</span>
         <input @ref="@(_elements[DatePart.Minute])" type="number" min="0" max="59" maxlength="2"
-               value="@(GetDatePart(DatePart.Minute)?.ToString("00"))"
-               @oninput="e => HandleInput(e,DatePart.Minute)" @onfocus="() => HandleFocus(DatePart.Minute)" @onkeyup="e => HandleKeyUp(e, DatePart.Minute)"
+               value="@(GetInputValue(DatePart.Minute)?.ToString("00"))"
+               @oninput="e => HandleInput(e, DatePart.Minute)" @onfocus="() => HandleFocus(DatePart.Minute)" @onkeyup="e => HandleKeyUp(e, DatePart.Minute)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
     }
 </div>
@@ -68,10 +68,11 @@
         get => _value;
         set
         {
-            UpdateDateParts(value);
-            if (value == null && _value == null || (_value?.Equals(value) ?? false)) return;
-            _value = value;
-            ValueChanged.InvokeAsync(value);
+            var v = value == default(DateTime) ? null : value;
+            UpdateDateParts(v);
+            if (v == null && _value == null || (_value?.Equals(v) ?? false)) return;
+            _value = v;
+            ValueChanged.InvokeAsync(v);
         }
     }
 
@@ -94,31 +95,35 @@
         }
     }
 
-    private int? GetDatePart(DatePart part)
+    private int? GetInputValue(DatePart part)
     {
         return _dateParts.TryGetValue(part, out var value) ? value : null;
     }
 
     private void UpdateValue()
     {
-        if (_dateParts.TryGetValue(DatePart.Year, out var year)
-            && _dateParts.TryGetValue(DatePart.Month, out var month)
-            && _dateParts.TryGetValue(DatePart.Day, out var day) && IsValidDate(year, month, day))
+        if (Mode == EditMode.TimeOnly && _dateParts.TryGetValue(DatePart.Hour, out var hour) && _dateParts.TryGetValue(DatePart.Minute, out var minute))
+        {
+            var date = _value ?? DateTime.Now;
+            Value = ApplyMinMaxRestrictions(new DateTime(date.Year, date.Month, date.Day, hour, minute, 0, 0));
+        }
+        else if (_dateParts.TryGetValue(DatePart.Year, out var year)
+                 && _dateParts.TryGetValue(DatePart.Month, out var month)
+                 && _dateParts.TryGetValue(DatePart.Day, out var day)
+                 && IsValidDate(year, month, day))
         {
             var updatedDate = TryCreateDate(year, month, day,
-                GetDatePart(DatePart.Hour) ?? _value?.Hour ?? 0, GetDatePart(DatePart.Minute) ?? _value?.Minute ?? 0);
-            if (updatedDate.HasValue)
-            {
-                // Apply min/max restrictions before setting the value
-                updatedDate = ApplyMinMaxRestrictions(updatedDate.Value);
-                Value = updatedDate;
-            }
+                GetInputValue(DatePart.Hour) ?? _value?.Hour ?? 0,
+                GetInputValue(DatePart.Minute) ?? _value?.Minute ?? 0);
+            if (!updatedDate.HasValue) return;
+            Value = ApplyMinMaxRestrictions(updatedDate.Value);
         }
         else
         {
             Logger.LogWarning("Incomplete date entry, waiting for valid input.");
         }
     }
+
     private DateTime ApplyMinMaxRestrictions(DateTime value)
     {
         var minDate = MinDate ?? Calendar.MinSupportedDateTime;
@@ -143,8 +148,8 @@
             Logger.LogError($"Invalid Date Attempted: Year={year}, Month={month}, Day={day}");
             return null;
         }
-
     }
+
     private async Task HandleInput(ChangeEventArgs e, DatePart part)
     {
         var rawValue = e.Value?.ToString();
@@ -156,6 +161,8 @@
                 DatePart.Year => parsedValue.ToString().Length == 4,
                 DatePart.Month => parsedValue > 1 || rawValue.Length == 2,
                 DatePart.Day => parsedValue > 3 || rawValue.Length == 2,
+                DatePart.Hour => parsedValue > 2 || rawValue.Length == 2,
+                DatePart.Minute => parsedValue > 5 || rawValue.Length == 2,
                 _ => rawValue.Length >= 2,
             };
 
@@ -167,10 +174,11 @@
                     case DatePart.Year:
                     case DatePart.Month:
                     case DatePart.Day:
-                        var day = GetDatePart(DatePart.Day);
+                        var day = GetInputValue(DatePart.Day);
                         if (day.HasValue) _dateParts[DatePart.Day] = CoerceValue(day.Value, DatePart.Day);
                         break;
                 }
+
                 await MoveFocus(part);
             }
         }
@@ -221,6 +229,7 @@
                 max = 59;
                 break;
         }
+
         return value > max ? max : value < min ? min : value;
     }
 
