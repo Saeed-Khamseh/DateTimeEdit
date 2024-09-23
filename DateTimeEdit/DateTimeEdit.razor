@@ -2,25 +2,29 @@
 @inject ILogger<DateTimeEdit> Logger
 @inject IJSRuntime Js
 
-<div class="container @(Disabled == true ? "disabled" : "") @(Disabled == null ? "readonly" : "")">
+<div class="container@(ContainerClass.Length>0 ? $" {ContainerClass}" : "") @(Disabled == true ? " disabled" : "") @(Disabled == null ? " readonly" : "")">
     @if (Mode != EditMode.TimeOnly)
     {
-        <input @ref="@(_elements[DatePart.Year])" type="number" class="year" min="1" max="9999" maxlength="4" value="@GetInputValue(DatePart.Year)"
+        <input @ref="@(_elements[DatePart.Year])" type="number" class="input year@(InputClass.Length > 0 ? $" {InputClass}": "")"
+               min="1" max="9999" maxlength="4" value="@GetInputValue(DatePart.Year)"
                @oninput="e => HandleInput(e, DatePart.Year)" @onfocus="() => HandleFocus(DatePart.Year)" @onkeyup="e => HandleKeyUp(e, DatePart.Year)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
         <span class="separator">@DateSeparator</span>
         <input @ref="@(_elements[DatePart.Month])" type="number" min="1" max="12" maxlength="2" value="@(GetInputValue(DatePart.Month)?.ToString("00"))"
                @oninput="e => HandleInput(e, DatePart.Month)" @onfocus="() => HandleFocus(DatePart.Month)" @onkeyup="e => HandleKeyUp(e, DatePart.Month)"
-               disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
+               disabled="@(Disabled == true)" readonly="@(Disabled == null)"
+               class="input@(InputClass.Length > 0 ? $" {InputClass}": "")" />
         <span class="separator">@DateSeparator</span>
         <input @ref="@(_elements[DatePart.Day])" type="number" min="1" max="31" maxlength="2" value="@(GetInputValue(DatePart.Day)?.ToString("00"))"
                @oninput="e => HandleInput(e, DatePart.Day)" @onfocus="() => HandleFocus(DatePart.Day)" @onkeyup="e => HandleKeyUp(e, DatePart.Day)"
-               disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
+               disabled="@(Disabled == true)" readonly="@(Disabled == null)"
+               class="input@(InputClass.Length > 0 ? $" {InputClass}": "")" />
     }
 
     @if (Mode != EditMode.DateOnly)
     {
-        <input @ref="@(_elements[DatePart.Hour])" type="number" min="0" max="23" maxlength="2" class="hour"
+        <input @ref="@(_elements[DatePart.Hour])" type="number" min="0" max="23" maxlength="2"
+               class="input@(InputClass.Length > 0 ? $" {InputClass}": "")"
                value="@(GetInputValue(DatePart.Hour)?.ToString("00"))"
                @oninput="e => HandleInput(e, DatePart.Hour)" @onfocus="() => HandleFocus(DatePart.Hour)" @onkeyup="e => HandleKeyUp(e, DatePart.Hour)"
                disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
@@ -28,7 +32,8 @@
         <input @ref="@(_elements[DatePart.Minute])" type="number" min="0" max="59" maxlength="2"
                value="@(GetInputValue(DatePart.Minute)?.ToString("00"))"
                @oninput="e => HandleInput(e, DatePart.Minute)" @onfocus="() => HandleFocus(DatePart.Minute)" @onkeyup="e => HandleKeyUp(e, DatePart.Minute)"
-               disabled="@(Disabled == true)" readonly="@(Disabled == null)" />
+               disabled="@(Disabled == true)" readonly="@(Disabled == null)"
+               class="input@(InputClass.Length > 0 ? $" {InputClass}": "")" />
     }
 </div>
 
@@ -56,6 +61,8 @@
     [Parameter] public Calendar Calendar { get; set; } = new PersianCalendar();
     [Parameter] public DateTime? MinDate { get; set; }
     [Parameter] public DateTime? MaxDate { get; set; }
+    [Parameter] public string ContainerClass { get; set; } = "";
+    [Parameter] public string InputClass { get; set; } = "";
 
     private DateTime? _value;
     private Dictionary<DatePart, ElementReference> _elements = new();

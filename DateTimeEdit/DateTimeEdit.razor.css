@@ -1,13 +1,10 @@
 ﻿.container {
-    border: 1px solid gray;
-    border-radius: 4px;
-    padding: 0 4px;
     display: inline-flex;
     align-items: baseline;
+    flex-direction: row-reverse;
 }
 
     .container.disabled {
-        background-color: lightgray;
         pointer-events: none;
         opacity: 0.5;
     }
@@ -16,14 +13,13 @@
         opacity: 0.5;
     }
 
-input {
-    border: none;
-    width: 2ch;
-    padding: 8px 0;
+.input {
+    max-width: 3ch;
     text-align: center;
+    box-sizing: content-box;
 }
 
-    input:disabled {
+    .input:disabled {
         background-color: unset;
     }
 
@@ -32,13 +28,10 @@ input {
     margin: 0 2px;
 }
 
-.year {
-    width: 4ch;
+.input.year {
+    max-width: 6ch;
 }
 
-.hour {
-    margin-left: 4px;
-}
 
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button {
